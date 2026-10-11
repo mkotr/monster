@@ -1,6 +1,7 @@
 import json
+from unittest.mock import MagicMock, patch
 
-from scrapers.coles import _extract_products, _parse_next_data
+from scrapers.coles import _extract_products, _parse_next_data, _fetch_via_requests
 
 
 def test_extract_products_finds_matching_white_monster():
@@ -63,3 +64,33 @@ def test_parse_next_data_returns_empty_dict_for_invalid_json():
 def test_parse_next_data_returns_empty_dict_for_missing_text():
     assert _parse_next_data(None) == {}
     assert _parse_next_data("") == {}
+
+
+def test_fetch_via_requests_returns_none_on_non_200():
+    mock_response = MagicMock(status_code=403, text="blocked")
+    with patch("scrapers.coles.requests.get", return_value=mock_response):
+        assert _fetch_via_requests() is None
+
+
+def test_fetch_via_requests_returns_none_when_next_data_missing():
+    mock_response = MagicMock(status_code=200, text="<html><body>Incapsula challenge, no next data</body></html>")
+    with patch("scrapers.coles.requests.get", return_value=mock_response):
+        assert _fetch_via_requests() is None
+
+
+def test_fetch_via_requests_returns_none_on_request_exception():
+    with patch("scrapers.coles.requests.get", side_effect=Exception("connection error")):
+        assert _fetch_via_requests() is None
+
+
+def test_fetch_via_requests_returns_parsed_props_when_next_data_present():
+    next_data_json = json.dumps({"props": {"pageProps": {"searchResults": {"results": [
+        {"id": 2787147, "brand": "Monster", "name": "Energy Ultra Can", "size": "500mL", "pricing": {"now": 4.7}},
+    ]}}}})
+    html = f'<html><body><script id="__NEXT_DATA__" type="application/json">{next_data_json}</script></body></html>'
+    mock_response = MagicMock(status_code=200, text=html)
+    with patch("scrapers.coles.requests.get", return_value=mock_response):
+        props = _fetch_via_requests()
+    result = _extract_products(props)
+    assert len(result) == 1
+    assert result[0]["name"] == "Monster Energy Ultra Can | 500mL"

@@ -2,12 +2,18 @@ import json
 import math
 import re
 
+import requests
 from playwright.sync_api import sync_playwright
 
 from scrapers._playwright_utils import goto_and_wait
 from scrapers._product_matching import is_white_monster
 
 SEARCH_URL = "https://www.coles.com.au/search/products?q=monster%20ultra%20white"
+USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+)
+_NEXT_DATA_PATTERN = re.compile(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', re.S)
 
 
 def _slugify(text):
@@ -61,7 +67,24 @@ def _parse_next_data(text):
     return data.get("props", {})
 
 
+def _fetch_via_requests():
+    try:
+        response = requests.get(SEARCH_URL, headers={"User-Agent": USER_AGENT}, timeout=15)
+    except Exception:
+        return None
+    if response.status_code != 200:
+        return None
+    match = _NEXT_DATA_PATTERN.search(response.text)
+    if not match:
+        return None
+    return _parse_next_data(match.group(1))
+
+
 def search_white_monster():
+    data = _fetch_via_requests()
+    if data is not None:
+        return _extract_products(data)
+
     captured = {}
 
     def handle_response(response):
