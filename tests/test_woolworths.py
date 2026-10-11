@@ -27,6 +27,14 @@ def test_extract_products_skips_items_with_non_numeric_price():
     assert _extract_products(data) == []
 
 
+def test_extract_products_skips_items_with_non_finite_price():
+    data = {"Bundles": [{"Products": [
+        {"Name": "Monster Ultra White 500mL", "Price": "NaN", "Stockcode": 123},
+        {"Name": "Monster Ultra White 4pk 500mL", "Price": "Infinity", "Stockcode": 456},
+    ]}]}
+    assert _extract_products(data) == []
+
+
 def test_extract_products_returns_all_matching_pack_sizes():
     data = {"Bundles": [{"Products": [
         {"Name": "Monster Ultra White 500mL", "Price": 3.5, "Stockcode": 1},

@@ -1,4 +1,9 @@
+import json
+import math
+
 from playwright.sync_api import sync_playwright
+
+from scrapers._playwright_utils import goto_and_wait
 
 SEARCH_URL = "https://www.coles.com.au/search/products?q=monster%20ultra%20white"
 
@@ -18,6 +23,8 @@ def _extract_products(data):
             price = float(price)
         except (TypeError, ValueError):
             continue
+        if not math.isfinite(price):
+            continue
         slug = (item.get("_links") or {}).get("self", {}).get("href", "")
         products.append({
             "name": name,
@@ -25,6 +32,16 @@ def _extract_products(data):
             "url": f"https://www.coles.com.au{slug}" if slug else SEARCH_URL,
         })
     return products
+
+
+def _parse_next_data(text):
+    if not text:
+        return {}
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        return {}
+    return data.get("props", {})
 
 
 def search_white_monster():
@@ -39,10 +56,21 @@ def search_white_monster():
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        page.on("response", handle_response)
-        page.goto(SEARCH_URL, wait_until="networkidle", timeout=30000)
-        browser.close()
+        try:
+            page = browser.new_page()
+            page.on("response", handle_response)
+            goto_and_wait(page, SEARCH_URL, timeout=30000)
+
+            if "data" not in captured:
+                try:
+                    next_data_text = page.locator("#__NEXT_DATA__").text_content(timeout=5000)
+                except Exception:
+                    next_data_text = None
+                props = _parse_next_data(next_data_text)
+                if props:
+                    captured["data"] = props
+        finally:
+            browser.close()
 
     if "data" not in captured:
         raise RuntimeError("Coles search did not return product data (possibly blocked)")

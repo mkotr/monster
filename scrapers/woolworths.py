@@ -1,4 +1,8 @@
+import math
+
 from playwright.sync_api import sync_playwright
+
+from scrapers._playwright_utils import goto_and_wait
 
 SEARCH_URL = "https://www.woolworths.com.au/shop/search/products?searchTerm=monster+ultra+white"
 SEARCH_API_PATTERN = "/apis/ui/Search/products"
@@ -19,6 +23,8 @@ def _extract_products(data):
             try:
                 price = float(price)
             except (TypeError, ValueError):
+                continue
+            if not math.isfinite(price):
                 continue
             products.append({
                 "name": name,
@@ -43,10 +49,12 @@ def search_white_monster():
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        page.on("response", handle_response)
-        page.goto(SEARCH_URL, wait_until="networkidle", timeout=30000)
-        browser.close()
+        try:
+            page = browser.new_page()
+            page.on("response", handle_response)
+            goto_and_wait(page, SEARCH_URL, timeout=30000)
+        finally:
+            browser.close()
 
     if "data" not in captured:
         raise RuntimeError("Woolworths search did not return product data (possibly blocked)")
