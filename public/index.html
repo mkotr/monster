@@ -4,12 +4,33 @@
   <meta charset="utf-8" />
   <title>White Monster Price Checker</title>
   <style>
-    body { font-family: sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
-    button { font-size: 1rem; padding: 0.5rem 1rem; cursor: pointer; }
+    :root {
+      --bg: #ffffff;
+      --fg: #111111;
+      --border: #dddddd;
+      --button-bg: #f0f0f0;
+      --link: #0645ad;
+      --error: #b00020;
+      --loading: #666666;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #121212;
+        --fg: #e8e8e8;
+        --border: #333333;
+        --button-bg: #2a2a2a;
+        --link: #8ab4ff;
+        --error: #ff6b6b;
+        --loading: #aaaaaa;
+      }
+    }
+    body { font-family: sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; background: var(--bg); color: var(--fg); }
+    button { font-size: 1rem; padding: 0.5rem 1rem; cursor: pointer; background: var(--button-bg); color: var(--fg); border: 1px solid var(--border); }
     table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
-    th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid #ddd; }
-    .error { color: #b00020; }
-    .loading { color: #666; }
+    th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid var(--border); }
+    a { color: var(--link); }
+    .error { color: var(--error); }
+    .loading { color: var(--loading); }
   </style>
 </head>
 <body>
