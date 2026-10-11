@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>White Monster Price Checker</title>
+  <style>
+    body { font-family: sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+    button { font-size: 1rem; padding: 0.5rem 1rem; cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
+    th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid #ddd; }
+    .error { color: #b00020; }
+    .loading { color: #666; }
+  </style>
+</head>
+<body>
+  <h1>White Monster Price Checker</h1>
+  <button id="check-btn">Check Prices</button>
+  <p id="status"></p>
+  <table id="results" hidden>
+    <thead>
+      <tr><th>Store</th><th>Product</th><th>Price</th><th></th></tr>
+    </thead>
+    <tbody id="results-body"></tbody>
+  </table>
+
+  <script>
+    const STORE_LABELS = { woolworths: "Woolworths", coles: "Coles" };
+
+    const btn = document.getElementById("check-btn");
+    const status = document.getElementById("status");
+    const table = document.getElementById("results");
+    const body = document.getElementById("results-body");
+
+    btn.addEventListener("click", checkPrices);
+
+    async function checkPrices() {
+      btn.disabled = true;
+      status.textContent = "Checking prices...";
+      status.className = "loading";
+      table.hidden = true;
+      body.innerHTML = "";
+
+      try {
+        const response = await fetch("/api/prices");
+        const data = await response.json();
+        renderResults(data);
+        status.textContent = "";
+      } catch (err) {
+        status.textContent = "Failed to reach the server: " + err.message;
+        status.className = "error";
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function renderResults(data) {
+      let rowCount = 0;
+      for (const store of Object.keys(STORE_LABELS)) {
+        const result = data[store];
+        if (!result) continue;
+
+        if (result.status === "error") {
+          body.appendChild(row([STORE_LABELS[store], "unavailable (" + result.message + ")", "", ""]));
+          rowCount++;
+          continue;
+        }
+
+        if (result.products.length === 0) {
+          body.appendChild(row([STORE_LABELS[store], "no matching product found", "", ""]));
+          rowCount++;
+          continue;
+        }
+
+        for (const product of result.products) {
+          const tr = row([STORE_LABELS[store], product.name, "$" + product.price.toFixed(2)]);
+          const linkCell = document.createElement("td");
+          const link = document.createElement("a");
+          link.href = product.url;
+          link.target = "_blank";
+          link.textContent = "view";
+          linkCell.appendChild(link);
+          tr.appendChild(linkCell);
+          body.appendChild(tr);
+          rowCount++;
+        }
+      }
+      table.hidden = rowCount === 0;
+    }
+
+    function row(cells) {
+      const tr = document.createElement("tr");
+      for (const cell of cells) {
+        const td = document.createElement("td");
+        td.textContent = cell;
+        tr.appendChild(td);
+      }
+      return tr;
+    }
+  </script>
+</body>
+</html>

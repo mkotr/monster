@@ -1,10 +1,10 @@
 from concurrent.futures import ThreadPoolExecutor
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
 
 from scrapers import woolworths, coles
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static", static_url_path="")
 
 
 def _run_scraper(name, fn):
@@ -27,6 +27,11 @@ def get_prices():
             name, result = future.result()
             results[name] = result
     return jsonify(results)
+
+
+@app.get("/")
+def index():
+    return send_from_directory(app.static_folder, "index.html")
 
 
 if __name__ == "__main__":
