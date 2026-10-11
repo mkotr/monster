@@ -29,6 +29,7 @@ export function createApp({
 
   app.get("/api/prices", async (req, res) => {
     const today = todayKey();
+    const fetchedAt = new Date().toISOString();
     const cache = await readCache(cachePath);
     const scrapers = { woolworths: woolworthsSearch, coles: colesSearch };
     const results = {};
@@ -38,19 +39,20 @@ export function createApp({
       Object.entries(scrapers).map(async ([name, fn]) => {
         const cached = cache[name];
         if (isFreshToday(cached, today)) {
-          results[name] = { status: "ok", products: cached.products };
+          results[name] = { status: "ok", products: cached.products, checkedAt: cached.fetchedAt };
           return;
         }
         const [, result] = await runScraper(name, fn);
-        results[name] = result;
         if (result.status === "ok") {
+          result.checkedAt = fetchedAt;
           updates[name] = result.products;
         }
+        results[name] = result;
       }),
     );
 
     if (Object.keys(updates).length > 0) {
-      await writeCache(cachePath, mergeCacheUpdates(cache, updates, today));
+      await writeCache(cachePath, mergeCacheUpdates(cache, updates, today, fetchedAt));
     }
 
     res.json(results);

@@ -11,10 +11,10 @@ export function isFreshToday(entry, today) {
   return Boolean(entry) && entry.date === today;
 }
 
-export function mergeCacheUpdates(cache, updates, today) {
+export function mergeCacheUpdates(cache, updates, today, fetchedAt) {
   const merged = { ...cache };
   for (const [name, products] of Object.entries(updates)) {
-    merged[name] = { date: today, products };
+    merged[name] = { date: today, fetchedAt, products };
   }
   return merged;
 }

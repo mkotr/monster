@@ -2,76 +2,268 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>White Monster Price Checker</title>
   <style>
     :root {
-      --bg: #ffffff;
-      --fg: #111111;
-      --border: #dddddd;
-      --button-bg: #f0f0f0;
-      --link: #0645ad;
-      --error: #b00020;
-      --loading: #666666;
+      --bg: #f3f4f6;
+      --card-bg: #ffffff;
+      --fg: #15181e;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --row-alt: #f9fafb;
+      --accent: #16a34a;
+      --accent-hover: #15803d;
+      --accent-fg: #ffffff;
+      --link: #2563eb;
+      --error: #dc2626;
+      --error-bg: #fef2f2;
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg: #121212;
-        --fg: #e8e8e8;
-        --border: #333333;
-        --button-bg: #2a2a2a;
+        --bg: #0f1115;
+        --card-bg: #1a1d23;
+        --fg: #e8eaed;
+        --muted: #9aa0a8;
+        --border: #2b2f38;
+        --row-alt: #20232b;
+        --accent: #22c55e;
+        --accent-hover: #16a34a;
+        --accent-fg: #0b1510;
         --link: #8ab4ff;
-        --error: #ff6b6b;
-        --loading: #aaaaaa;
+        --error: #f87171;
+        --error-bg: #2a1616;
       }
     }
-    body { font-family: sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; background: var(--bg); color: var(--fg); }
-    button { font-size: 1rem; padding: 0.5rem 1rem; cursor: pointer; background: var(--button-bg); color: var(--fg); border: 1px solid var(--border); }
-    table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
-    th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid var(--border); }
-    a { color: var(--link); }
-    .error { color: var(--error); }
-    .loading { color: var(--loading); }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 2.5rem 1rem;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 660px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.75rem 1.75rem 2rem;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
+    }
+
+    h1 {
+      margin: 0 0 0.2rem;
+      font-size: 1.4rem;
+      letter-spacing: -0.01em;
+    }
+
+    .subtitle {
+      margin: 0 0 1.5rem;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.25rem;
+    }
+
+    #check-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      padding: 0.6rem 1.15rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: var(--accent);
+      color: var(--accent-fg);
+      transition: background 0.15s ease, transform 0.05s ease;
+    }
+    #check-btn:hover:not(:disabled) { background: var(--accent-hover); }
+    #check-btn:active:not(:disabled) { transform: scale(0.98); }
+    #check-btn:disabled { opacity: 0.65; cursor: default; }
+
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.45);
+      border-top-color: currentcolor;
+      display: none;
+      animation: spin 0.7s linear infinite;
+    }
+    #check-btn.loading .spinner { display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #status {
+      margin: 0;
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+    #status.error {
+      color: var(--error);
+      background: var(--error-bg);
+      padding: 0.5rem 0.75rem;
+      border-radius: 8px;
+      flex-basis: 100%;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    table[hidden] { display: none; }
+
+    thead th {
+      text-align: left;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      padding: 0 0.6rem 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    thead th:last-child, thead th:nth-last-child(2) { text-align: right; }
+
+    tbody tr:nth-child(odd) { background: var(--row-alt); }
+    tbody td {
+      padding: 0.65rem 0.6rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    .store-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      color: #ffffff;
+      white-space: nowrap;
+    }
+    .store-badge.woolworths { background: #1e8e3e; }
+    .store-badge.coles { background: #e2231a; }
+
+    .price {
+      font-weight: 700;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .checked-at {
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .view-link {
+      display: inline-block;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--link);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .view-link:hover { text-decoration: underline; }
+
+    .muted-row td {
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .table-wrap { overflow-x: auto; }
   </style>
 </head>
 <body>
-  <h1>White Monster Price Checker</h1>
-  <button id="check-btn">Check Prices</button>
-  <p id="status"></p>
-  <table id="results" hidden>
-    <thead>
-      <tr><th>Store</th><th>Product</th><th>Price</th><th></th></tr>
-    </thead>
-    <tbody id="results-body"></tbody>
-  </table>
+  <div class="card">
+    <h1>White Monster Price Checker</h1>
+    <p class="subtitle">Live Monster Energy Ultra prices from Woolworths and Coles.</p>
+
+    <div class="controls">
+      <button id="check-btn" type="button">
+        <span class="spinner" aria-hidden="true"></span>
+        <span class="btn-label">Check Prices</span>
+      </button>
+      <p id="status"></p>
+    </div>
+
+    <div class="table-wrap">
+      <table id="results" hidden>
+        <thead>
+          <tr>
+            <th>Store</th>
+            <th>Product</th>
+            <th>Price</th>
+            <th>Checked</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="results-body"></tbody>
+      </table>
+    </div>
+  </div>
 
   <script>
     const STORE_LABELS = { woolworths: "Woolworths", coles: "Coles" };
 
     const btn = document.getElementById("check-btn");
+    const btnLabel = btn.querySelector(".btn-label");
     const status = document.getElementById("status");
     const table = document.getElementById("results");
     const body = document.getElementById("results-body");
+
+    const DEFAULT_LABEL = btnLabel.textContent;
 
     btn.addEventListener("click", checkPrices);
 
     async function checkPrices() {
       btn.disabled = true;
-      status.textContent = "Checking prices...";
-      status.className = "loading";
+      btn.classList.add("loading");
+      btnLabel.textContent = "Checking…";
+      status.textContent = "";
+      status.className = "";
       table.hidden = true;
       body.innerHTML = "";
 
       try {
         const response = await fetch("/api/prices");
+        if (!response.ok) {
+          throw new Error("server responded with status " + response.status);
+        }
         const data = await response.json();
         renderResults(data);
-        status.textContent = "";
       } catch (err) {
         status.textContent = "Failed to reach the server: " + err.message;
         status.className = "error";
       } finally {
         btn.disabled = false;
+        btn.classList.remove("loading");
+        btnLabel.textContent = DEFAULT_LABEL;
       }
+    }
+
+    function formatTime(iso) {
+      if (!iso) return "";
+      const date = new Date(iso);
+      if (Number.isNaN(date.getTime())) return "";
+      return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
     }
 
     function renderResults(data) {
@@ -81,40 +273,74 @@
         if (!result) continue;
 
         if (result.status === "error") {
-          body.appendChild(row([STORE_LABELS[store], "unavailable (" + result.message + ")", "", ""]));
+          body.appendChild(messageRow(store, "unavailable (" + result.message + ")"));
           rowCount++;
           continue;
         }
 
         if (result.products.length === 0) {
-          body.appendChild(row([STORE_LABELS[store], "no matching product found", "", ""]));
+          body.appendChild(messageRow(store, "no matching product found"));
           rowCount++;
           continue;
         }
 
         for (const product of result.products) {
-          const tr = row([STORE_LABELS[store], product.name, "$" + product.price.toFixed(2)]);
-          const linkCell = document.createElement("td");
-          const link = document.createElement("a");
-          link.href = product.url;
-          link.target = "_blank";
-          link.textContent = "view";
-          linkCell.appendChild(link);
-          tr.appendChild(linkCell);
-          body.appendChild(tr);
+          body.appendChild(productRow(store, product, result.checkedAt));
           rowCount++;
         }
       }
       table.hidden = rowCount === 0;
     }
 
-    function row(cells) {
+    function storeBadge(store) {
+      const span = document.createElement("span");
+      span.className = "store-badge " + store;
+      span.textContent = STORE_LABELS[store];
+      return span;
+    }
+
+    function messageRow(store, message) {
       const tr = document.createElement("tr");
-      for (const cell of cells) {
-        const td = document.createElement("td");
-        td.textContent = cell;
-        tr.appendChild(td);
-      }
+      tr.className = "muted-row";
+
+      const storeTd = document.createElement("td");
+      storeTd.appendChild(storeBadge(store));
+
+      const msgTd = document.createElement("td");
+      msgTd.colSpan = 4;
+      msgTd.textContent = message;
+
+      tr.append(storeTd, msgTd);
+      return tr;
+    }
+
+    function productRow(store, product, checkedAt) {
+      const tr = document.createElement("tr");
+
+      const storeTd = document.createElement("td");
+      storeTd.appendChild(storeBadge(store));
+
+      const nameTd = document.createElement("td");
+      nameTd.textContent = product.name;
+
+      const priceTd = document.createElement("td");
+      priceTd.className = "price";
+      priceTd.textContent = "$" + product.price.toFixed(2);
+
+      const checkedTd = document.createElement("td");
+      checkedTd.className = "checked-at";
+      checkedTd.textContent = formatTime(checkedAt);
+
+      const linkTd = document.createElement("td");
+      const link = document.createElement("a");
+      link.href = product.url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.className = "view-link";
+      link.textContent = "View →";
+      linkTd.appendChild(link);
+
+      tr.append(storeTd, nameTd, priceTd, checkedTd, linkTd);
       return tr;
     }
   </script>

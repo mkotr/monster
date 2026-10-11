@@ -99,6 +99,42 @@ test("GET /api/prices passes through multiple products without truncating", asyn
   });
 });
 
+test("GET /api/prices includes a checkedAt timestamp for successful results", async () => {
+  await withTempCachePath(async (cachePath) => {
+    const app = createApp({
+      woolworthsSearch: async () => [
+        { name: "Monster Ultra White 500mL", price: 3.5, url: "https://example.com/a" },
+      ],
+      colesSearch: async () => [],
+      cachePath,
+    });
+
+    await withServer(app, async (baseUrl) => {
+      const data = await (await fetch(`${baseUrl}/api/prices`)).json();
+      assert.ok(data.woolworths.checkedAt);
+      assert.ok(!Number.isNaN(Date.parse(data.woolworths.checkedAt)));
+    });
+  });
+});
+
+test("GET /api/prices reuses the cached checkedAt on a cache hit", async () => {
+  await withTempCachePath(async (cachePath) => {
+    const app = createApp({
+      woolworthsSearch: async () => [
+        { name: "Monster Ultra White 500mL", price: 3.5, url: "https://example.com/a" },
+      ],
+      colesSearch: async () => [],
+      cachePath,
+    });
+
+    await withServer(app, async (baseUrl) => {
+      const first = await (await fetch(`${baseUrl}/api/prices`)).json();
+      const second = await (await fetch(`${baseUrl}/api/prices`)).json();
+      assert.equal(second.woolworths.checkedAt, first.woolworths.checkedAt);
+    });
+  });
+});
+
 test("GET /api/prices caches a successful result and skips re-scraping the same day", async () => {
   await withTempCachePath(async (cachePath) => {
     let woolworthsCalls = 0;

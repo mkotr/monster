@@ -27,24 +27,55 @@ test("isFreshToday is false when entry is missing", () => {
   assert.equal(isFreshToday(null, "2026-10-12"), false);
 });
 
-test("mergeCacheUpdates adds new entries with today's date", () => {
-  const result = mergeCacheUpdates({}, { woolworths: [{ name: "x", price: 1, url: "u" }] }, "2026-10-12");
+test("mergeCacheUpdates adds new entries with today's date and fetchedAt", () => {
+  const result = mergeCacheUpdates(
+    {},
+    { woolworths: [{ name: "x", price: 1, url: "u" }] },
+    "2026-10-12",
+    "2026-10-12T03:42:00.000Z",
+  );
   assert.deepEqual(result, {
-    woolworths: { date: "2026-10-12", products: [{ name: "x", price: 1, url: "u" }] },
+    woolworths: {
+      date: "2026-10-12",
+      fetchedAt: "2026-10-12T03:42:00.000Z",
+      products: [{ name: "x", price: 1, url: "u" }],
+    },
   });
 });
 
 test("mergeCacheUpdates preserves untouched existing entries", () => {
-  const existing = { coles: { date: "2026-10-12", products: [{ name: "c", price: 2, url: "u2" }] } };
-  const result = mergeCacheUpdates(existing, { woolworths: [{ name: "w", price: 1, url: "u1" }] }, "2026-10-12");
+  const existing = {
+    coles: { date: "2026-10-12", fetchedAt: "2026-10-12T01:00:00.000Z", products: [{ name: "c", price: 2, url: "u2" }] },
+  };
+  const result = mergeCacheUpdates(
+    existing,
+    { woolworths: [{ name: "w", price: 1, url: "u1" }] },
+    "2026-10-12",
+    "2026-10-12T03:42:00.000Z",
+  );
   assert.deepEqual(result.coles, existing.coles);
-  assert.deepEqual(result.woolworths, { date: "2026-10-12", products: [{ name: "w", price: 1, url: "u1" }] });
+  assert.deepEqual(result.woolworths, {
+    date: "2026-10-12",
+    fetchedAt: "2026-10-12T03:42:00.000Z",
+    products: [{ name: "w", price: 1, url: "u1" }],
+  });
 });
 
 test("mergeCacheUpdates overwrites an existing entry for the same store", () => {
-  const existing = { woolworths: { date: "2026-10-11", products: [{ name: "old", price: 1, url: "u" }] } };
-  const result = mergeCacheUpdates(existing, { woolworths: [{ name: "new", price: 2, url: "u2" }] }, "2026-10-12");
-  assert.deepEqual(result.woolworths, { date: "2026-10-12", products: [{ name: "new", price: 2, url: "u2" }] });
+  const existing = {
+    woolworths: { date: "2026-10-11", fetchedAt: "2026-10-11T01:00:00.000Z", products: [{ name: "old", price: 1, url: "u" }] },
+  };
+  const result = mergeCacheUpdates(
+    existing,
+    { woolworths: [{ name: "new", price: 2, url: "u2" }] },
+    "2026-10-12",
+    "2026-10-12T03:42:00.000Z",
+  );
+  assert.deepEqual(result.woolworths, {
+    date: "2026-10-12",
+    fetchedAt: "2026-10-12T03:42:00.000Z",
+    products: [{ name: "new", price: 2, url: "u2" }],
+  });
 });
 
 test("readCache returns an empty object when the file does not exist", async () => {
