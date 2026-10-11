@@ -1,11 +1,17 @@
 import json
 import math
+import re
 
 from playwright.sync_api import sync_playwright
 
 from scrapers._playwright_utils import goto_and_wait
+from scrapers._product_matching import is_white_monster
 
 SEARCH_URL = "https://www.coles.com.au/search/products?q=monster%20ultra%20white"
+
+
+def _slugify(text):
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
 
 
 def _extract_products(data):
@@ -13,11 +19,18 @@ def _extract_products(data):
     results = data.get("pageProps", {}).get("searchResults", {}).get("results", [])
     for item in results:
         name = item.get("name")
+        if not name:
+            continue
+        brand = item.get("brand") or ""
+        size = item.get("size") or ""
+        full_name = f"{brand} {name}".strip()
+        if size:
+            full_name = f"{full_name} | {size}"
+        if not is_white_monster(full_name):
+            continue
         pricing = item.get("pricing") or {}
         price = pricing.get("now")
-        if not name or price is None:
-            continue
-        if "white" not in name.lower():
+        if price is None:
             continue
         try:
             price = float(price)
@@ -25,11 +38,15 @@ def _extract_products(data):
             continue
         if not math.isfinite(price):
             continue
-        slug = (item.get("_links") or {}).get("self", {}).get("href", "")
+        product_id = item.get("id")
+        if product_id:
+            url = f"https://www.coles.com.au/product/{_slugify(full_name)}-{product_id}"
+        else:
+            url = SEARCH_URL
         products.append({
-            "name": name,
+            "name": full_name,
             "price": price,
-            "url": f"https://www.coles.com.au{slug}" if slug else SEARCH_URL,
+            "url": url,
         })
     return products
 
@@ -55,7 +72,7 @@ def search_white_monster():
                 pass
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        browser = p.chromium.launch(headless=False)
         try:
             page = browser.new_page()
             page.on("response", handle_response)

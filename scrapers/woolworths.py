@@ -3,6 +3,7 @@ import math
 from playwright.sync_api import sync_playwright
 
 from scrapers._playwright_utils import goto_and_wait
+from scrapers._product_matching import is_white_monster
 
 SEARCH_URL = "https://www.woolworths.com.au/shop/search/products?searchTerm=monster+ultra+white"
 SEARCH_API_PATTERN = "/apis/ui/Search/products"
@@ -10,7 +11,7 @@ SEARCH_API_PATTERN = "/apis/ui/Search/products"
 
 def _extract_products(data):
     products = []
-    bundles = data.get("Bundles") or [{"Products": data.get("Products", [])}]
+    bundles = data.get("Bundles") or data.get("Products") or []
     for bundle in bundles:
         for item in bundle.get("Products", []):
             name = item.get("Name") or item.get("DisplayName")
@@ -18,7 +19,7 @@ def _extract_products(data):
             stockcode = item.get("Stockcode")
             if not name or price is None:
                 continue
-            if "white" not in name.lower():
+            if not is_white_monster(name):
                 continue
             try:
                 price = float(price)
@@ -48,7 +49,7 @@ def search_white_monster():
                 pass
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        browser = p.chromium.launch(headless=False)
         try:
             page = browser.new_page()
             page.on("response", handle_response)
