@@ -76,6 +76,30 @@ export function buildComparisonRows(data) {
   return [...sortedGroups, ...unmatched];
 }
 
+export function findBestDeal(rows) {
+  let best = null;
+  for (const row of rows) {
+    if (row.volumeMl === null) continue;
+    for (const store of Object.keys(STORE_LABELS)) {
+      const product = row.stores[store];
+      if (!product) continue;
+      const perLitre = costPerLitre(product.price, row.volumeMl);
+      if (perLitre === null) continue;
+      if (best === null || perLitre < best.perLitre) {
+        best = {
+          store,
+          perLitre,
+          price: product.price,
+          name: product.name,
+          url: product.url,
+          volumeMl: row.volumeMl,
+        };
+      }
+    }
+  }
+  return best;
+}
+
 export function storeNotices(data) {
   const notices = [];
   for (const store of Object.keys(STORE_LABELS)) {

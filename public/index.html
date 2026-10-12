@@ -241,6 +241,21 @@
     }
 
     .table-wrap { overflow-x: auto; }
+
+    .best-deal {
+      margin: 0 0 1rem;
+      padding: 0.65rem 0.9rem;
+      border-radius: 8px;
+      background: var(--cheaper-bg);
+      border: 1px solid var(--cheaper-border);
+      font-size: 0.88rem;
+    }
+    .best-deal a {
+      color: var(--link);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .best-deal a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -256,6 +271,7 @@
       <p id="status"></p>
     </div>
 
+    <p id="best-deal" class="best-deal" hidden></p>
     <p id="checked-summary" hidden></p>
     <div id="notices"></div>
 
@@ -275,13 +291,14 @@
   </div>
 
   <script type="module">
-    import { buildComparisonRows, formatVolumeLabel, costPerLitre, storeNotices } from "./compare.js";
+    import { buildComparisonRows, formatVolumeLabel, costPerLitre, findBestDeal, storeNotices } from "./compare.js";
 
     const STORE_LABELS = { woolworths: "Woolworths", coles: "Coles", amazon: "Amazon" };
 
     const btn = document.getElementById("check-btn");
     const btnLabel = btn.querySelector(".btn-label");
     const status = document.getElementById("status");
+    const bestDeal = document.getElementById("best-deal");
     const checkedSummary = document.getElementById("checked-summary");
     const notices = document.getElementById("notices");
     const table = document.getElementById("results");
@@ -315,6 +332,7 @@
       body.innerHTML = "";
       notices.innerHTML = "";
       checkedSummary.hidden = true;
+      bestDeal.hidden = true;
 
       try {
         const response = await fetch("/api/prices");
@@ -369,6 +387,33 @@
         body.appendChild(comparisonRow(row));
       }
       table.hidden = rows.length === 0;
+
+      renderBestDeal(findBestDeal(rows));
+    }
+
+    function renderBestDeal(deal) {
+      bestDeal.innerHTML = "";
+      if (!deal) {
+        bestDeal.hidden = true;
+        return;
+      }
+
+      const storeLabel = document.createElement("strong");
+      storeLabel.textContent = STORE_LABELS[deal.store];
+
+      const link = document.createElement("a");
+      link.href = deal.url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = "View →";
+
+      bestDeal.append(
+        "🏆 Best value: ",
+        storeLabel,
+        ` — $${deal.price.toFixed(2)} (${formatVolumeLabel(deal.volumeMl)}) · $${deal.perLitre.toFixed(2)}/L  `,
+        link,
+      );
+      bestDeal.hidden = false;
     }
 
     function comparisonRow(row) {

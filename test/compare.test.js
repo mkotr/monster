@@ -1,7 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { parseVolumeMl, formatVolumeLabel, costPerLitre, buildComparisonRows, storeNotices } from "../public/compare.js";
+import {
+  parseVolumeMl,
+  formatVolumeLabel,
+  costPerLitre,
+  buildComparisonRows,
+  findBestDeal,
+  storeNotices,
+} from "../public/compare.js";
 
 test("parseVolumeMl reads a plain mL size", () => {
   assert.equal(parseVolumeMl("Monster Energy Ultra Can 500mL"), 500);
@@ -173,6 +180,72 @@ test("buildComparisonRows places unparseable products in their own row at the en
   assert.equal(rows[1].volumeMl, null);
   assert.equal(rows[1].stores.woolworths.name, "Mystery Monster Product");
   assert.equal(rows[1].stores.coles, null);
+});
+
+test("findBestDeal picks the lowest cost-per-litre across all rows and stores", () => {
+  const rows = buildComparisonRows({
+    woolworths: {
+      status: "ok",
+      checkedAt: "x",
+      products: [{ name: "Monster Energy Ultra Can 500mL", price: 4.7, url: "https://ww/a" }],
+    },
+    coles: {
+      status: "ok",
+      checkedAt: "x",
+      products: [{ name: "Monster Energy Drink Ultra 4x500ml | 2L", price: 17.5, url: "https://coles/a" }],
+    },
+    amazon: {
+      status: "ok",
+      checkedAt: "x",
+      products: [{ name: "Monster Energy Drink Zero Ultra 24 x 500ml", price: 68.5, url: "https://amazon/a" }],
+    },
+  });
+
+  const deal = findBestDeal(rows);
+  assert.equal(deal.store, "amazon");
+  assert.equal(deal.price, 68.5);
+  assert.equal(deal.volumeMl, 12000);
+  assert.equal(deal.perLitre, costPerLitre(68.5, 12000));
+  assert.equal(deal.name, "Monster Energy Drink Zero Ultra 24 x 500ml");
+  assert.equal(deal.url, "https://amazon/a");
+});
+
+test("findBestDeal ignores the unmatched Other row since volume is unknown", () => {
+  const rows = buildComparisonRows({
+    woolworths: {
+      status: "ok",
+      checkedAt: "x",
+      products: [
+        { name: "Mystery Monster Bundle", price: 0.5, url: "https://ww/mystery" },
+        { name: "Monster Energy Ultra Can 500mL", price: 4.7, url: "https://ww/a" },
+      ],
+    },
+  });
+
+  const deal = findBestDeal(rows);
+  assert.equal(deal.name, "Monster Energy Ultra Can 500mL");
+});
+
+test("findBestDeal breaks ties by earliest row then store order", () => {
+  const rows = buildComparisonRows({
+    woolworths: {
+      status: "ok",
+      checkedAt: "x",
+      products: [{ name: "Monster Energy Ultra Can 500mL", price: 4.7, url: "https://ww/a" }],
+    },
+    coles: {
+      status: "ok",
+      checkedAt: "x",
+      products: [{ name: "Monster Energy Ultra Can | 500mL", price: 4.7, url: "https://coles/a" }],
+    },
+  });
+
+  const deal = findBestDeal(rows);
+  assert.equal(deal.store, "woolworths");
+});
+
+test("findBestDeal returns null when there are no rows", () => {
+  assert.equal(findBestDeal([]), null);
 });
 
 test("storeNotices reports an error message for a blocked store", () => {
