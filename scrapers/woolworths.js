@@ -11,7 +11,7 @@ export function extractProducts(data) {
   const bundles = data.Bundles || data.Products || [];
   for (const bundle of bundles) {
     for (const item of bundle.Products || []) {
-      const name = item.Name || item.DisplayName;
+      const name = item.DisplayName || item.Name;
       const rawPrice = item.Price;
       const stockcode = item.Stockcode;
       if (!name || rawPrice === null || rawPrice === undefined) continue;

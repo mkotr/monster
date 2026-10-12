@@ -16,7 +16,7 @@ test("extractProducts finds matching white monster", () => {
   };
   const result = extractProducts(data);
   assert.equal(result.length, 1);
-  assert.equal(result[0].name, "Monster Energy Ultra Can");
+  assert.equal(result[0].name, "Monster Energy Ultra Can 500mL");
   assert.equal(result[0].price, 4.7);
   assert.ok(result[0].url.endsWith("/489787"));
 });
