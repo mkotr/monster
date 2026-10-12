@@ -5,6 +5,11 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { createApp } from "../server.js";
+import { todayKey } from "../cache.js";
+
+function todayStr() {
+  return todayKey();
+}
 
 async function withServer(app, run) {
   const server = await new Promise((resolve) => {
@@ -203,6 +208,57 @@ test("GET /api/prices ignores a cached entry from a previous day", async () => {
     });
 
     assert.equal(calls, 1);
+  });
+});
+
+test("GET /api/prices/cached returns today's cached entries without scraping", async () => {
+  await withTempCachePath(async (cachePath) => {
+    await writeFile(
+      cachePath,
+      JSON.stringify({
+        woolworths: {
+          date: todayStr(),
+          fetchedAt: "2026-10-12T03:00:00.000Z",
+          products: [{ name: "Monster Ultra White 500mL", price: 3.5, url: "https://example.com/a" }],
+        },
+      }),
+    );
+    let woolworthsCalls = 0;
+    let colesCalls = 0;
+    const app = createApp({
+      woolworthsSearch: async () => {
+        woolworthsCalls++;
+        return [];
+      },
+      colesSearch: async () => {
+        colesCalls++;
+        return [];
+      },
+      cachePath,
+    });
+
+    await withServer(app, async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/api/prices/cached`);
+      const data = await response.json();
+      assert.equal(response.status, 200);
+      assert.equal(data.woolworths.status, "ok");
+      assert.equal(data.woolworths.products[0].name, "Monster Ultra White 500mL");
+      assert.equal(data.coles, undefined);
+    });
+
+    assert.equal(woolworthsCalls, 0);
+    assert.equal(colesCalls, 0);
+  });
+});
+
+test("GET /api/prices/cached returns an empty object when nothing is cached", async () => {
+  await withTempCachePath(async (cachePath) => {
+    const app = createApp({ cachePath });
+    await withServer(app, async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/api/prices/cached`);
+      const data = await response.json();
+      assert.deepEqual(data, {});
+    });
   });
 });
 

@@ -232,6 +232,20 @@
     const DEFAULT_LABEL = btnLabel.textContent;
 
     btn.addEventListener("click", checkPrices);
+    loadCachedResults();
+
+    async function loadCachedResults() {
+      try {
+        const response = await fetch("/api/prices/cached");
+        if (!response.ok) return;
+        const data = await response.json();
+        if (Object.keys(data).length > 0) {
+          renderResults(data);
+        }
+      } catch {
+        // Silent - the Check Prices button still works for a live check.
+      }
+    }
 
     async function checkPrices() {
       btn.disabled = true;

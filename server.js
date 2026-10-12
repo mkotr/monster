@@ -5,7 +5,7 @@ import express from "express";
 
 import * as woolworths from "./scrapers/woolworths.js";
 import * as coles from "./scrapers/coles.js";
-import { readCache, writeCache, todayKey, isFreshToday, mergeCacheUpdates } from "./cache.js";
+import { readCache, writeCache, todayKey, isFreshToday, mergeCacheUpdates, freshEntries } from "./cache.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_CACHE_PATH = path.join(__dirname, "cache.json");
@@ -26,6 +26,12 @@ export function createApp({
 } = {}) {
   const app = express();
   app.use(express.static(path.join(__dirname, "public")));
+
+  app.get("/api/prices/cached", async (req, res) => {
+    const today = todayKey();
+    const cache = await readCache(cachePath);
+    res.json(freshEntries(cache, today));
+  });
 
   app.get("/api/prices", async (req, res) => {
     const today = todayKey();

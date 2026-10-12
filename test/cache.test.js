@@ -4,7 +4,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { todayKey, isFreshToday, mergeCacheUpdates, readCache, writeCache } from "../cache.js";
+import { todayKey, isFreshToday, mergeCacheUpdates, readCache, writeCache, freshEntries } from "../cache.js";
 
 test("todayKey formats a date as YYYY-MM-DD", () => {
   assert.equal(todayKey(new Date(2026, 0, 5)), "2026-01-05");
@@ -76,6 +76,25 @@ test("mergeCacheUpdates overwrites an existing entry for the same store", () => 
     fetchedAt: "2026-10-12T03:42:00.000Z",
     products: [{ name: "new", price: 2, url: "u2" }],
   });
+});
+
+test("freshEntries returns only entries dated today, mapped to API shape", () => {
+  const cache = {
+    woolworths: { date: "2026-10-12", fetchedAt: "2026-10-12T03:00:00.000Z", products: [{ name: "w", price: 1, url: "u1" }] },
+    coles: { date: "2026-10-11", fetchedAt: "2026-10-11T03:00:00.000Z", products: [{ name: "c", price: 2, url: "u2" }] },
+  };
+  const result = freshEntries(cache, "2026-10-12");
+  assert.deepEqual(result, {
+    woolworths: {
+      status: "ok",
+      products: [{ name: "w", price: 1, url: "u1" }],
+      checkedAt: "2026-10-12T03:00:00.000Z",
+    },
+  });
+});
+
+test("freshEntries returns an empty object when nothing is cached for today", () => {
+  assert.deepEqual(freshEntries({}, "2026-10-12"), {});
 });
 
 test("readCache returns an empty object when the file does not exist", async () => {

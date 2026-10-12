@@ -19,6 +19,16 @@ export function mergeCacheUpdates(cache, updates, today, fetchedAt) {
   return merged;
 }
 
+export function freshEntries(cache, today) {
+  const result = {};
+  for (const [name, entry] of Object.entries(cache)) {
+    if (isFreshToday(entry, today)) {
+      result[name] = { status: "ok", products: entry.products, checkedAt: entry.fetchedAt };
+    }
+  }
+  return result;
+}
+
 export async function readCache(cachePath) {
   try {
     const text = await readFile(cachePath, "utf-8");
