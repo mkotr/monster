@@ -34,6 +34,11 @@ export function formatVolumeLabel(volumeMl) {
   return `${volumeMl} mL`;
 }
 
+export function costPerLitre(price, volumeMl) {
+  if (!volumeMl) return null;
+  return Math.round((price / (volumeMl / 1000)) * 100) / 100;
+}
+
 function emptyStores() {
   const stores = {};
   for (const store of Object.keys(STORE_LABELS)) stores[store] = null;

@@ -214,6 +214,12 @@
       white-space: nowrap;
     }
 
+    .unit-price {
+      font-size: 0.8rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
     .view-link {
       font-size: 0.82rem;
       font-weight: 600;
@@ -269,7 +275,7 @@
   </div>
 
   <script type="module">
-    import { buildComparisonRows, formatVolumeLabel, storeNotices } from "./compare.js";
+    import { buildComparisonRows, formatVolumeLabel, costPerLitre, storeNotices } from "./compare.js";
 
     const STORE_LABELS = { woolworths: "Woolworths", coles: "Coles", amazon: "Amazon" };
 
@@ -380,13 +386,13 @@
       for (const store of storeKeys) {
         const product = row.stores[store];
         const isCheaper = minPrice !== null && Boolean(product) && product.price === minPrice;
-        tr.appendChild(storeCell(store, product, isCheaper));
+        tr.appendChild(storeCell(store, product, isCheaper, row.volumeMl));
       }
 
       return tr;
     }
 
-    function storeCell(store, product, isCheaper) {
+    function storeCell(store, product, isCheaper, volumeMl) {
       const td = document.createElement("td");
       td.className = "store-cell" + (isCheaper ? " cheaper" : "");
 
@@ -398,9 +404,15 @@
         return td;
       }
 
-      const name = document.createElement("span");
-      name.className = "product-name";
-      name.textContent = product.name;
+      // The size column already identifies the product for grouped rows;
+      // only the ungrouped "Other" row (no parseable volume) needs the
+      // name shown to tell products apart.
+      if (volumeMl === null) {
+        const name = document.createElement("span");
+        name.className = "product-name";
+        name.textContent = product.name;
+        td.appendChild(name);
+      }
 
       const priceRow = document.createElement("div");
       priceRow.className = "price-row";
@@ -408,6 +420,15 @@
       const price = document.createElement("span");
       price.className = "price";
       price.textContent = "$" + product.price.toFixed(2);
+      priceRow.appendChild(price);
+
+      const perLitre = costPerLitre(product.price, volumeMl);
+      if (perLitre !== null) {
+        const unit = document.createElement("span");
+        unit.className = "unit-price";
+        unit.textContent = "($" + perLitre.toFixed(2) + "/L)";
+        priceRow.appendChild(unit);
+      }
 
       const link = document.createElement("a");
       link.href = product.url;
@@ -415,9 +436,9 @@
       link.rel = "noopener noreferrer";
       link.className = "view-link";
       link.textContent = "View →";
+      priceRow.appendChild(link);
 
-      priceRow.append(price, link);
-      td.append(name, priceRow);
+      td.appendChild(priceRow);
       return td;
     }
   </script>

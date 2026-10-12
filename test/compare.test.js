@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { parseVolumeMl, formatVolumeLabel, buildComparisonRows, storeNotices } from "../public/compare.js";
+import { parseVolumeMl, formatVolumeLabel, costPerLitre, buildComparisonRows, storeNotices } from "../public/compare.js";
 
 test("parseVolumeMl reads a plain mL size", () => {
   assert.equal(parseVolumeMl("Monster Energy Ultra Can 500mL"), 500);
@@ -43,6 +43,19 @@ test("formatVolumeLabel formats fractional litres", () => {
 
 test("formatVolumeLabel formats sub-litre volumes as mL", () => {
   assert.equal(formatVolumeLabel(500), "500 mL");
+});
+
+test("costPerLitre computes dollars per litre for a sub-litre volume", () => {
+  assert.equal(costPerLitre(4.7, 500), 9.4);
+});
+
+test("costPerLitre computes dollars per litre for a multi-litre volume", () => {
+  assert.equal(costPerLitre(68.5, 12000), Math.round((68.5 / 12) * 100) / 100);
+});
+
+test("costPerLitre returns null when volume is null or zero", () => {
+  assert.equal(costPerLitre(4.7, null), null);
+  assert.equal(costPerLitre(4.7, 0), null);
 });
 
 test("buildComparisonRows groups matching volumes from both stores into one row", () => {
