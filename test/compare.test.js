@@ -84,6 +84,48 @@ test("buildComparisonRows groups matching volumes from both stores into one row"
   assert.equal(row2000.stores.coles.price, 17.5);
 });
 
+test("buildComparisonRows groups a third store's products alongside the other two", () => {
+  const data = {
+    woolworths: {
+      status: "ok",
+      checkedAt: "x",
+      products: [{ name: "Monster Energy Ultra Can 500mL", price: 4.7, url: "https://ww/a" }],
+    },
+    coles: {
+      status: "ok",
+      checkedAt: "x",
+      products: [{ name: "Monster Energy Ultra Can | 500mL", price: 4.7, url: "https://coles/a" }],
+    },
+    amazon: {
+      status: "ok",
+      checkedAt: "x",
+      products: [
+        { name: "Monster Ultra White Energy Drink Pack 4 x 500ml", price: 26.0, url: "https://amazon/a" },
+        { name: "Monster Energy Drink Zero Ultra 24 x 500ml", price: 68.5, url: "https://amazon/b" },
+      ],
+    },
+  };
+
+  const rows = buildComparisonRows(data);
+
+  assert.equal(rows.length, 3);
+  assert.deepEqual(rows.map((r) => r.volumeMl), [500, 2000, 12000]);
+
+  const row500 = rows[0];
+  assert.equal(row500.stores.woolworths.price, 4.7);
+  assert.equal(row500.stores.coles.price, 4.7);
+  assert.equal(row500.stores.amazon, null);
+
+  const row2000 = rows[1];
+  assert.equal(row2000.stores.woolworths, null);
+  assert.equal(row2000.stores.coles, null);
+  assert.equal(row2000.stores.amazon.price, 26.0);
+
+  const row12000 = rows[2];
+  assert.equal(row12000.stores.woolworths, null);
+  assert.equal(row12000.stores.amazon.price, 68.5);
+});
+
 test("buildComparisonRows ignores a store with error or empty status", () => {
   const data = {
     woolworths: {

@@ -32,7 +32,7 @@ async function withTempCachePath(run) {
   }
 }
 
-test("GET /api/prices combines both stores successfully", async () => {
+test("GET /api/prices combines all three stores successfully", async () => {
   await withTempCachePath(async (cachePath) => {
     const app = createApp({
       woolworthsSearch: async () => [
@@ -41,12 +41,17 @@ test("GET /api/prices combines both stores successfully", async () => {
       colesSearch: async () => [
         { name: "Monster Energy Ultra White 500mL", price: 3.2, url: "https://example.com/b" },
       ],
+      amazonSearch: async () => [
+        { name: "Monster Energy Drink Zero Ultra 24 x 500ml", price: 68.5, url: "https://example.com/c" },
+      ],
       cachePath,
     });
 
     await withServer(app, async (baseUrl) => {
       const response = await fetch(`${baseUrl}/api/prices`);
       const data = await response.json();
+      assert.equal(data.amazon.status, "ok");
+      assert.equal(data.amazon.products[0].price, 68.5);
 
       assert.equal(response.status, 200);
       assert.equal(data.woolworths.status, "ok");
@@ -66,6 +71,7 @@ test("GET /api/prices reports per-store error without failing whole request", as
       colesSearch: async () => {
         throw new Error("blocked");
       },
+      amazonSearch: async () => [],
       cachePath,
     });
 
@@ -90,6 +96,7 @@ test("GET /api/prices passes through multiple products without truncating", asyn
     const app = createApp({
       woolworthsSearch: async () => twoProducts,
       colesSearch: async () => [],
+      amazonSearch: async () => [],
       cachePath,
     });
 
@@ -111,6 +118,7 @@ test("GET /api/prices includes a checkedAt timestamp for successful results", as
         { name: "Monster Ultra White 500mL", price: 3.5, url: "https://example.com/a" },
       ],
       colesSearch: async () => [],
+      amazonSearch: async () => [],
       cachePath,
     });
 
@@ -129,6 +137,7 @@ test("GET /api/prices reuses the cached checkedAt on a cache hit", async () => {
         { name: "Monster Ultra White 500mL", price: 3.5, url: "https://example.com/a" },
       ],
       colesSearch: async () => [],
+      amazonSearch: async () => [],
       cachePath,
     });
 
@@ -149,6 +158,7 @@ test("GET /api/prices caches a successful result and skips re-scraping the same 
         return [{ name: "Monster Ultra White 500mL", price: 3.5, url: "https://example.com/a" }];
       },
       colesSearch: async () => [],
+      amazonSearch: async () => [],
       cachePath,
     });
 
@@ -171,6 +181,7 @@ test("GET /api/prices does not cache an errored store and retries it next reques
         colesCalls++;
         throw new Error("blocked");
       },
+      amazonSearch: async () => [],
       cachePath,
     });
 
@@ -198,6 +209,7 @@ test("GET /api/prices ignores a cached entry from a previous day", async () => {
         return [{ name: "fresh", price: 1, url: "https://example.com/fresh" }];
       },
       colesSearch: async () => [],
+      amazonSearch: async () => [],
       cachePath,
     });
 

@@ -5,6 +5,7 @@ import express from "express";
 
 import * as woolworths from "./scrapers/woolworths.js";
 import * as coles from "./scrapers/coles.js";
+import * as amazon from "./scrapers/amazon.js";
 import { readCache, writeCache, todayKey, isFreshToday, mergeCacheUpdates, freshEntries } from "./cache.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -22,6 +23,7 @@ async function runScraper(name, fn) {
 export function createApp({
   woolworthsSearch = woolworths.searchWhiteMonster,
   colesSearch = coles.searchWhiteMonster,
+  amazonSearch = amazon.searchWhiteMonster,
   cachePath = DEFAULT_CACHE_PATH,
 } = {}) {
   const app = express();
@@ -37,7 +39,7 @@ export function createApp({
     const today = todayKey();
     const fetchedAt = new Date().toISOString();
     const cache = await readCache(cachePath);
-    const scrapers = { woolworths: woolworthsSearch, coles: colesSearch };
+    const scrapers = { woolworths: woolworthsSearch, coles: colesSearch, amazon: amazonSearch };
     const results = {};
     const updates = {};
 

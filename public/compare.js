@@ -1,4 +1,4 @@
-const STORE_LABELS = { woolworths: "Woolworths", coles: "Coles" };
+const STORE_LABELS = { woolworths: "Woolworths", coles: "Coles", amazon: "Amazon" };
 
 // Checked in order: multi-pack patterns before the plain single-unit
 // pattern, so e.g. "500mL x 4 pack" resolves to 2000, not 500.
@@ -34,6 +34,12 @@ export function formatVolumeLabel(volumeMl) {
   return `${volumeMl} mL`;
 }
 
+function emptyStores() {
+  const stores = {};
+  for (const store of Object.keys(STORE_LABELS)) stores[store] = null;
+  return stores;
+}
+
 export function buildComparisonRows(data) {
   const groups = new Map();
   const unmatched = [];
@@ -49,13 +55,13 @@ export function buildComparisonRows(data) {
       if (volumeMl === null) {
         unmatched.push({
           volumeMl: null,
-          stores: { woolworths: null, coles: null, [store]: entry },
+          stores: { ...emptyStores(), [store]: entry },
         });
         continue;
       }
 
       if (!groups.has(volumeMl)) {
-        groups.set(volumeMl, { volumeMl, stores: { woolworths: null, coles: null } });
+        groups.set(volumeMl, { volumeMl, stores: emptyStores() });
       }
       groups.get(volumeMl).stores[store] = entry;
     }

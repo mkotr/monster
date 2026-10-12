@@ -38,3 +38,26 @@ test("isWhiteMonster rejects unrelated products", () => {
   assert.equal(isWhiteMonster("Monster Single Socket Surge Protector White"), false);
   assert.equal(isWhiteMonster("Monster USB-C to USB-C Braided Cable - White 1.2m"), false);
 });
+
+test("isWhiteMonster rejects marketplace noise that happens to contain monster + ultra", () => {
+  assert.equal(isWhiteMonster("Ultra Monster Series 81 Tyrant"), false);
+  assert.equal(isWhiteMonster("BANDAI Ultraman Decker Ultra Kaiju Series 55 Micras"), false);
+  assert.equal(isWhiteMonster("Ultra Monster 500 series 14"), false);
+});
+
+test("isWhiteMonster rejects the Rosa flavour, including in bundle listings", () => {
+  assert.equal(isWhiteMonster("Monster Ultra Rosa 24 x 500ml"), false);
+  assert.equal(
+    isWhiteMonster("Monster Energy Ultra Bundle: Monster Zero Ultra 24pk & Monster Ultra Rosa 24pk"),
+    false,
+  );
+});
+
+test("isWhiteMonster matches real Amazon listing variants", () => {
+  assert.equal(isWhiteMonster("Monster Energy Drink Zero Ultra 24 x 500ml"), true);
+  assert.equal(isWhiteMonster("Monster Zero Ultra Energy Drink 24 x 500 ml"), true);
+  assert.equal(
+    isWhiteMonster("Monster Ultra White Energy Drink Pack 4 x 500ml | Zero Sugar Energy Soda with Caffeine"),
+    true,
+  );
+});

@@ -162,7 +162,7 @@
       padding: 0 0.6rem 0.5rem;
       border-bottom: 1px solid var(--border);
     }
-    thead th.size-col { width: 25%; }
+    thead th.size-col { width: 16%; }
 
     tbody tr:nth-child(odd) { background: var(--row-alt); }
     tbody td {
@@ -194,6 +194,7 @@
     }
     .store-badge.woolworths { background: #1e8e3e; }
     .store-badge.coles { background: #e2231a; }
+    .store-badge.amazon { background: #131921; }
 
     .product-name {
       display: block;
@@ -239,7 +240,7 @@
 <body>
   <div class="card">
     <h1>White Monster Price Checker</h1>
-    <p class="subtitle">Comparing Monster Energy Ultra prices between Woolworths and Coles, by pack size.</p>
+    <p class="subtitle">Comparing Monster Energy Ultra prices across Woolworths, Coles, and Amazon, by pack size.</p>
 
     <div class="controls">
       <button id="check-btn" type="button">
@@ -259,6 +260,7 @@
             <th class="size-col">Size</th>
             <th>Woolworths</th>
             <th>Coles</th>
+            <th>Amazon</th>
           </tr>
         </thead>
         <tbody id="results-body"></tbody>
@@ -269,7 +271,7 @@
   <script type="module">
     import { buildComparisonRows, formatVolumeLabel, storeNotices } from "./compare.js";
 
-    const STORE_LABELS = { woolworths: "Woolworths", coles: "Coles" };
+    const STORE_LABELS = { woolworths: "Woolworths", coles: "Coles", amazon: "Amazon" };
 
     const btn = document.getElementById("check-btn");
     const btnLabel = btn.querySelector(".btn-label");
@@ -371,16 +373,15 @@
       sizeTd.textContent = row.volumeMl === null ? "Other" : formatVolumeLabel(row.volumeMl);
       tr.appendChild(sizeTd);
 
-      const w = row.stores.woolworths;
-      const c = row.stores.coles;
-      let cheaperStore = null;
-      if (w && c) {
-        if (w.price < c.price) cheaperStore = "woolworths";
-        else if (c.price < w.price) cheaperStore = "coles";
-      }
+      const storeKeys = Object.keys(STORE_LABELS);
+      const present = storeKeys.filter((store) => row.stores[store]);
+      const minPrice = present.length > 1 ? Math.min(...present.map((store) => row.stores[store].price)) : null;
 
-      tr.appendChild(storeCell("woolworths", w, cheaperStore === "woolworths"));
-      tr.appendChild(storeCell("coles", c, cheaperStore === "coles"));
+      for (const store of storeKeys) {
+        const product = row.stores[store];
+        const isCheaper = minPrice !== null && Boolean(product) && product.price === minPrice;
+        tr.appendChild(storeCell(store, product, isCheaper));
+      }
 
       return tr;
     }
